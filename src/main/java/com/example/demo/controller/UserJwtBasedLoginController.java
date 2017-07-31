@@ -80,27 +80,28 @@ public class UserJwtBasedLoginController {
             return new ResponseEntity(CustomErrorType.getErrorObject("Invalid login. Please check your name and password."), HttpStatus.CONFLICT);
         }
 
+
         UserSession userSession;
         String token;
 
         userSession = tokenService.findByName(loginModel.getName());
 
         if (userSession != null)
-            return new ResponseEntity(CustomErrorType.getErrorObject("User session is already active. Plase logout first!"), HttpStatus.CONFLICT);
+            return new ResponseEntity(CustomErrorType.getErrorObject("User session is already active. Please login again!"), HttpStatus.CONFLICT);
 
         token = TokenAuthenticationService.addAuthentication(user);
-        userSession = new UserSession();
-        userSession.setId(user.getId());
-        userSession.setUser_token(token);
-        userSession.setUser_name(user.getName());
-        tokenService.saveUserTokenForSession(userSession);
+        UserSession newSession = new UserSession();
+        newSession.setId(user.getId());
+        newSession.setUser_token(token);
+        newSession.setUser_name(user.getName());
+        tokenService.saveUserTokenForSession(newSession);
 
         return new ResponseEntity(CustomSuccessMessage.getSuccessObject(token), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/logout", method = RequestMethod.GET)
     private ResponseEntity<?> logoutById(@RequestHeader(value = "Authorization") String token) {
-        boolean isDeleted = tokenService.getTokenForLogOut(token);
+        boolean isDeleted = tokenService.clearTokenFromDB(token);
         if (isDeleted)
             return new ResponseEntity(CustomSuccessMessage.getSuccessObject("You are logged out now!"), HttpStatus.OK);
         else

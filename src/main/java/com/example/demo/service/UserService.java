@@ -24,6 +24,12 @@ public interface UserService {
 
     ArrayList<User> findAllUsers();
 
+    ArrayList<User> findAllStudents();
+
+    ArrayList<User> findAllTeachers();
+
+    boolean isAuthorized(String token);
+
     void deleteAllUsers();
 
     boolean isUserExist(User user);

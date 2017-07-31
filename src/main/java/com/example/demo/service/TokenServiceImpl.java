@@ -52,7 +52,7 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
-    public boolean getTokenForLogOut(String token) {
+    public boolean clearTokenFromDB(String token) {
         UserSession userSession = findTokenFromDB(token);
         if (userSession != null) {
             getSession().delete(userSession);

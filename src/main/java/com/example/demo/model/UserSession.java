@@ -1,6 +1,9 @@
 package com.example.demo.model;
 
 
+import org.hibernate.validator.constraints.Length;
+import org.hibernate.validator.constraints.Range;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -23,7 +26,7 @@ public class UserSession implements Serializable {
 
     @Column(name = "USER_TOKEN")
     @NotNull
-    @Size(max = 200)
+    @Size(max = 400)
     private String user_token;
 
     @Column(name = "USER_NAME")

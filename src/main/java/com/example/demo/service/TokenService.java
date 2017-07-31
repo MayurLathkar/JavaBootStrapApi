@@ -12,7 +12,7 @@ public interface TokenService {
 
     void updateUserTokenForSession(UserSession session);
 
-    boolean getTokenForLogOut(String token);
+    boolean clearTokenFromDB(String token);
 
     UserSession findTokenFromDB(String token);
 

@@ -12,7 +12,7 @@ import java.util.ArrayList;
 @Table(name = "teacher")
 public class Teacher extends User implements Serializable {
 
-    private ArrayList<String> subjects;
+    private ArrayList<Subject> subjects;
 
     private int[] classes;
 
@@ -50,11 +50,11 @@ public class Teacher extends User implements Serializable {
         super.setName(name);
     }
 
-    public ArrayList<String> getSubjects() {
+    public ArrayList<Subject> getSubjects() {
         return subjects;
     }
 
-    public void setSubjects(ArrayList<String> subjects) {
+    public void setSubjects(ArrayList<Subject> subjects) {
         this.subjects = subjects;
     }
 

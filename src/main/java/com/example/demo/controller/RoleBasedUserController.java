@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.model.Teacher;
 import com.example.demo.model.User;
 import com.example.demo.model.UserSession;
 import com.example.demo.service.TokenService;
@@ -36,10 +37,50 @@ public class RoleBasedUserController {
     //************************GET ALL USERS*********************//
 
     @RequestMapping(value = "/users", method = RequestMethod.GET)
-    private ResponseEntity<ArrayList<?>> getAllUsers() {
-        return new ResponseEntity(userService.findAllUsers(), HttpStatus.OK);
+    private ResponseEntity<ArrayList<?>> getAllUsers(@RequestHeader(value = "Authorization") String token) {
+
+        if (!userService.isAuthorized(token))
+            return new ResponseEntity(CustomErrorType.getErrorObject("Not authorized"), HttpStatus.OK);
+
+        String validToken = TokenAuthenticationService.getIssuer(token);
+
+        if (validToken!= null &&  validToken.equalsIgnoreCase("student")) {
+            return new ResponseEntity(userService.findById(tokenService.findTokenFromDB(token).getId()), HttpStatus.OK);
+        } else if (validToken!= null && validToken.equalsIgnoreCase("student")) {
+            getAllStudents(token);
+        } else if (validToken!= null && validToken.equalsIgnoreCase("student")) {
+            getAllTeachers(token);
+        } else
+            return new ResponseEntity(userService.findAllUsers(), HttpStatus.OK);
+
+        return null;
     }
 
+
+    @RequestMapping(value = "/students", method = RequestMethod.GET)
+    private ResponseEntity<ArrayList<?>> getAllStudents(@RequestHeader(value = "Authorization") String token) {
+        User user = userService.findByName(TokenAuthenticationService.getAuthenticationToken(token));
+        if (user == null)
+            return new ResponseEntity(CustomErrorType.getErrorObject("Not authorised to access!"), HttpStatus.CONFLICT);
+
+        if (user.getUser_type().equals("teacher"))
+            return new ResponseEntity(userService.findAllStudents(), HttpStatus.OK);
+        else
+            return new ResponseEntity(CustomErrorType.getErrorObject("Please change your role to get access for this!"), HttpStatus.CONFLICT);
+
+    }
+
+    @RequestMapping(value = "/teachers", method = RequestMethod.GET)
+    private ResponseEntity<ArrayList<?>> getAllTeachers(@RequestHeader(value = "Authorization") String token) {
+        User user = userService.findByName(TokenAuthenticationService.getAuthenticationToken(token));
+        if (user == null)
+            return new ResponseEntity(CustomErrorType.getErrorObject("Not authorised to access!"), HttpStatus.CONFLICT);
+
+        if (user.getUser_type().equals("teacher"))
+            return new ResponseEntity(userService.findAllTeachers(), HttpStatus.OK);
+        else
+            return new ResponseEntity(CustomErrorType.getErrorObject("Please change your role to get access for this!"), HttpStatus.CONFLICT);
+    }
     //************************CREATE USER*********************//
 
     @RequestMapping(value = "/user", method = RequestMethod.POST)
@@ -66,16 +107,22 @@ public class RoleBasedUserController {
     @RequestMapping(value = "/user/{id}", method = RequestMethod.GET)
     private ResponseEntity<?> getUserById(@PathVariable Long id, @RequestHeader(value = "Authorization") String token) {
 
-        UserSession userSession = tokenService.findTokenFromDB(token);
+        User user = userService.findById(id);
+        if (user == null)
+            return new ResponseEntity(CustomErrorType.getErrorObject("User does not exists!"), HttpStatus.CONFLICT);
+
+        UserSession userSession = null;
+
+        if (TokenAuthenticationService.getAuthenticationToken(token) != null)
+            userSession = tokenService.findTokenFromDB(token);
+        else {
+            return new ResponseEntity(CustomErrorType.getErrorObject("Token expired!"), HttpStatus.CONFLICT);
+        }
 
         if (userSession == null)
             return new ResponseEntity(CustomErrorType.getErrorObject("Not authorised to access!"), HttpStatus.CONFLICT);
 
-        User user = userService.findById(id);
-        if (user != null)
-            return new ResponseEntity(user, HttpStatus.OK);
-        else
-            return new ResponseEntity(CustomErrorType.getErrorObject("User does not exists!"), HttpStatus.CONFLICT);
+        return new ResponseEntity(user, HttpStatus.OK);
     }
 
 
@@ -84,35 +131,26 @@ public class RoleBasedUserController {
     @RequestMapping(value = "/user", method = RequestMethod.PUT)
     private ResponseEntity<?> updateUserById(@RequestBody User newUser, @RequestHeader(value = "Authorization") String token) {
 
-        UserSession userSession = tokenService.findTokenFromDB(token);
+        if (newUser == null)
+            return new ResponseEntity(CustomErrorType.getErrorObject("Parameters missing!"), HttpStatus.UNAUTHORIZED);
+
+        UserSession userSession = null;
+
+        if (TokenAuthenticationService.getAuthenticationToken(token) != null)
+            userSession = tokenService.findTokenFromDB(token);
+        else {
+            return new ResponseEntity(CustomErrorType.getErrorObject("Token expired!"), HttpStatus.CONFLICT);
+        }
 
         if (userSession == null)
             return new ResponseEntity(CustomErrorType.getErrorObject("Not a authorized user, Please login to get access"), HttpStatus.CONFLICT);
 
-        User user = userService.findByName(TokenAuthenticationService.getAuthenticationToken(token));
+        if (newUser.getName() == null)
+            userService.updateUser(userSession.getId(), newUser);
+        else
+            return new ResponseEntity(CustomSuccessMessage.getSuccessObject("User name can not nbe changed"), HttpStatus.OK);
 
-        if (user == null)
-            return new ResponseEntity(CustomErrorType.getErrorObject("Not authorised!"), HttpStatus.UNAUTHORIZED);
-
-        if (userService.findByName(newUser.getName()) != null)
-            return new ResponseEntity(CustomErrorType.getErrorObject("User with name " + newUser.getName() + " is already exists"), HttpStatus.CONFLICT);
-
-        if (newUser == null)
-            return new ResponseEntity(CustomErrorType.getErrorObject("Parameters missing!"), HttpStatus.UNAUTHORIZED);
-
-        if (newUser != null) {
-
-            if (newUser.getName() == null)
-                userService.updateUser(user.getId(), newUser);
-            else
-                return new ResponseEntity(CustomSuccessMessage.getSuccessObject("User name can not be changed"), HttpStatus.OK);
-
-            if (newUser != null)
-                return new ResponseEntity(CustomSuccessMessage.getSuccessObject("User updated successfully"), HttpStatus.OK);
-            else
-                return new ResponseEntity(CustomErrorType.getErrorObject("User not matches with exiting database!"), HttpStatus.CONFLICT);
-        } else
-            return new ResponseEntity(CustomErrorType.getErrorObject("User does not exists!"), HttpStatus.CONFLICT);
+        return new ResponseEntity(CustomSuccessMessage.getSuccessObject("User data updated successfully"), HttpStatus.OK);
     }
 
 

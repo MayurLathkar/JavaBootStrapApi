@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.model.User;
+import com.example.demo.model.UserSession;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +40,12 @@ public class UserServiceImpl implements UserService {
 
     private static ArrayList<User> users = null;
 
-    private static AtomicLong counter = new AtomicLong();
-
     @Autowired
     SessionFactory _sessionFactory;
+
+    @Autowired
+    TokenService tokenService;
+
 
     private Session getSession() {
         return _sessionFactory.getCurrentSession();
@@ -88,7 +91,6 @@ public class UserServiceImpl implements UserService {
         getSession().update(found);
     }
 
-//    update Product p set p.description = :description where p.productId = :productId
 
     @Override
     public boolean deleteUserById(long id) {
@@ -104,7 +106,21 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ArrayList<User> findAllUsers() {
-        return users;
+        return (ArrayList<User>) getSession().createQuery("from User").list();
+    }
+
+    @Override
+    public ArrayList<User> findAllStudents() {
+        return (ArrayList<User>) getSession().createQuery("from User where user_type = :user_type")
+                .setParameter("user_type", "student")
+                .list();
+    }
+
+    @Override
+    public ArrayList<User> findAllTeachers() {
+        return (ArrayList<User>) getSession().createQuery("from User where user_type = :user_type")
+                .setParameter("user_type", "teacher")
+                .list();
     }
 
     @Override
@@ -117,4 +133,10 @@ public class UserServiceImpl implements UserService {
         return findByName(user.getName()) != null;
     }
 
+    @Override
+    public boolean isAuthorized(String token) {
+        if (tokenService.findTokenFromDB(token) != null)
+            return true;
+        else return false;
+    }
 }
